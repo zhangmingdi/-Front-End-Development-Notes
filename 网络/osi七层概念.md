@@ -1,5 +1,22 @@
-### 图解tcp(易于理解)
-<https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk0MjE3NDE0Ng==&action=getalbum&album_id=1703494881072955395&uin=&key=&devicetype=Windows+10+x64&version=6303051e&lang=zh_CN&ascene=7&fontgear=2>
+
 
 ### 图解整个网络层(易于理解)
 <https://mp.weixin.qq.com/s?__biz=Mzk0MjE3NDE0Ng==&mid=2247489907&idx=1&sn=a296cb42467cab6f0a7847be32f52dae&chksm=c2c663def5b1eac84b664c8c1cadf1c8ec23ea2e57e48e04add9b833c841256fc9449b62c0ec&scene=178&cur_album_id=1703494881072955395#rd>
+
+#### 数据链路层 源mac地址->目标mac地址
++ 通过交换机(记录保存在本地mac地址表)发送给目标mac地址。
++ 通过这样传输方式而组成的小范围的网络，叫做以太网。
++ 多台交换机可以记录另一台交换机所连接的所有mac表
++ mac表越多交换机存储压力越大，所以就有以下网络层的出现。
+
+
+### 网络层 路由器(默认网关),在连接同一个路由(默认网关)的设备分配一个ip地址）
++ 如果源 IP 与目的 IP 处于一个子网，直接将包通过交换机发出去。
++ 如果不处在同一个子网下，直接把包发送给默认网关，让默认网关会找到子网的端口，通过(即arp缓存表)ip寻找目标mac地址，在交接给交换器处理
++ 交换器记录mac地址与端口，把最终数据发给目标mac
++ 整个过程数据联络层的头部一直处于变化的
+
+### arp协议
++ 设备 A 和 B 里面也会有一张 arp 缓存表，表中记录着 IP 与 MAC 地址的对应关系
++ 一开始的时候这个表是空的，设备 A 为了知道设备 B（192.168.0.2）的 MAC 地址，将会广播一条 arp 请求，B 收到请求后，带上自己的 MAC 地址给 A 一个响应。此时 A 便更新了自己的 arp 表
+
