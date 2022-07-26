@@ -1,0 +1,149 @@
+
+function reconcileChildrenArray(
+  returnFiber: Fiber,
+  currentFirstChild: Fiber | null,
+  newChildren: Array<*>,
+  lanes: Lanes,
+): Fiber | null {
+  /* * returnFiber：currentFirstChild的父级fiber节点
+     * currentFirstChild：当前执行更新任务的WIP（fiber）节点
+     * newChildren：组件的render方法渲染出的新的ReactElement节点
+     * lanes：优先级相关
+  * */
+
+  // resultingFirstChild是diff之后的新fiber链表的第一个fiber。
+  let resultingFirstChild: Fiber | null = null;
+  // resultingFirstChild是新链表的第一个fiber。
+  // previousNewFiber用来将后续的新fiber接到第一个fiber之后
+  let previousNewFiber: Fiber | null = null;
+
+  // oldFiber节点，新的child节点会和它进行比较
+  let oldFiber = currentFirstChild;
+  // 存储固定节点的位置
+  let lastPlacedIndex = 0;
+  // 存储遍历到的新节点的索引
+  let newIdx = 0;
+  // 记录目前遍历到的oldFiber的下一个节点
+  let nextOldFiber = null;
+
+  // 该轮遍历来处理节点更新，依据节点是否可复用来决定是否中断遍历
+  for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
+    // newChildren遍历完了，oldFiber链没有遍历完，此时需要中断遍历
+    if (oldFiber.index > newIdx) {
+      nextOldFiber = oldFiber; oldFiber = null;
+    } else {
+      // 用nextOldFiber存储当前遍历到的oldFiber的下一个节点
+      nextOldFiber = oldFiber.sibling;
+    }
+    // 生成新的节点，判断key与tag是否相同就在updateSlot中
+    // 对DOM类型的元素来说，key 和 tag都相同才会复用oldFiber
+    // 并返回出去，否则返回null
+    const newFiber = updateSlot(
+      returnFiber,
+      oldFiber,
+      newChildren[newIdx],
+      lanes,
+    );
+
+    // newFiber为 null说明 key 或 tag 不同，节点不可复用，中断遍历
+    if (newFiber === null) {
+      if (oldFiber === null) {
+        // oldFiber 为null说明oldFiber此时也遍历完了
+        // 是以下场景，D为新增节点
+        // 旧 A - B - C 
+        // 新 A - B - C - D oldFiber = nextOldFiber;
+      }
+      break;
+    }
+    if (shouldTrackSideEffects) {
+      // shouldTrackSideEffects 为true表示是更新过程
+      if (oldFiber && newFiber.alternate === null) {
+        // newFiber.alternate 等同于 oldFiber.alternate 
+        // oldFiber为WIP节点，它的alternate 就是 current节点
+        // oldFiber存在，并且经过更新后的新fiber节点它还没有current节点,
+        // 说明更新后展现在屏幕上不会有current节点，而更新后WIP
+        // 节点会称为current节点，所以需要删除已有的WIP节点
+        deleteChild(returnFiber, oldFiber);
+      }
+    }
+    // 记录固定节点的位置
+    lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+    // 将新fiber连接成以sibling为指针的单向链表
+    if (previousNewFiber === null) {
+      resultingFirstChild = newFiber;
+    } else {
+      previousNewFiber.sibling = newFiber;
+    }
+    previousNewFiber = newFiber;
+    // 将oldFiber节点指向下一个，与newChildren的遍历同步移动
+    oldFiber = nextOldFiber;
+  }
+
+  // 处理节点删除。新子节点遍历完，说明剩下的oldFiber都是没用的了，可以删除.
+  if (newIdx === newChildren.length) {
+    // newChildren遍历结束，删除掉oldFiber链中的剩下的节点
+    deleteRemainingChildren(returnFiber, oldFiber);
+    return resultingFirstChild;
+  }
+
+  // 处理新增节点。旧的遍历完了，能复用的都复用了，所以意味着新的都是新插入的了
+  if (oldFiber === null) {
+    for (; newIdx < newChildren.length; newIdx++) {
+
+      // 基于新生成的ReactElement创建新的Fiber节点
+      const newFiber = createChild(returnFiber, newChildren[newIdx], lanes);
+      if (newFiber === null) {
+        continue;
+      }
+      // 记录固定节点的位置lastPlacedIndex
+      lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+      // 将新生成的fiber节点连接成以sibling为指针的单向链表
+      if (previousNewFiber === null) {
+        resultingFirstChild = newFiber;
+      } else {
+        previousNewFiber.sibling = newFiber;
+      }
+      previousNewFiber = newFiber;
+    }
+    return resultingFirstChild;
+  }
+  // 执行到这是都没遍历完的情况，把剩余的旧子节点放入一个以key为键,值为oldFiber节点的map中
+  // 这样在基于oldFiber节点新建新的fiber节点时，可以通过key快速地找出oldFiber
+  const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
+
+  // 节点移动
+  for (; newIdx < newChildren.length; newIdx++) {
+    // 基于map中的oldFiber节点来创建新fiber
+    const newFiber = updateFromMap(existingChildren, returnFiber, newIdx, newChildren[newIdx], lanes,);
+    if (newFiber !== null) {
+      if (shouldTrackSideEffects) {
+        if (newFiber.alternate !== null) {
+          // 因为newChildren中剩余的节点有可能和oldFiber节点一样,只是位置换了，
+          // 但也有可能是是新增的.
+
+          // 如果newFiber的alternate不为空，则说明newFiber不是新增的。
+          // 也就说明着它是基于map中的oldFiber节点新建的,意味着oldFiber已经被使用了,所以需
+          // 要从map中删去oldFiber
+          existingChildren.delete(
+            newFiber.key === null ? newIdx : newFiber.key,
+          );
+        }
+      }
+
+      // 移动节点，多节点diff的核心，这里真正会实现节点的移动
+      lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+      // 将新fiber连接成以sibling为指针的单向链表
+      if (previousNewFiber === null) {
+        resultingFirstChild = newFiber;
+      } else {
+        previousNewFiber.sibling = newFiber;
+      }
+      previousNewFiber = newFiber;
+    }
+  }
+  if (shouldTrackSideEffects) {
+    // 此时newChildren遍历完了，该移动的都移动了，那么删除剩下的oldFiber
+    existingChildren.forEach(child => deleteChild(returnFiber, child));
+  }
+  return resultingFirstChild;
+}
