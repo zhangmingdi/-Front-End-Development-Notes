@@ -7,9 +7,10 @@
   <title>Document</title>
   <style>
     #SomeElementYouWantToAnimate {
-      height: 200px;
-      width: 200px;
+      height: 100px;
+      width: 100px;
       background: red;
+      position: absolute;
     }
   </style>
 </head>
@@ -17,25 +18,23 @@
 <body>
   <div id="SomeElementYouWantToAnimate"></div>
   <script>
-    var start = null
+    var start = 1
     var element = document.getElementById("SomeElementYouWantToAnimate")
-    element.style.position = "absolute"
 
-    function step(timestamp) {
-      if (!start) start = timestamp
-      var progress = timestamp - start
-      element.style.left = Math.min(progress / 10, 200) + "px"
-      if (progress < 2000) {
-        window.requestAnimationFrame(step)
-      }
+    function step() {
+      requestIdleCallback((deadline) => {
+        console.log('requestIdleCallback' + start, deadline.timeRemaining());
+      })
+      setTimeout(() => {
+        if (start < 10) {
+          element.setAttribute('style', `left:${start * 10}px`)
+          // console.log('start', start, element);
+          start++
+          step()
+        }
+      }, 2)
     }
-    // 动画
-    window.requestAnimationFrame(step)
-
-    // 空闲调度
-    window.requestIdleCallback(() => {
-      alert("rIC")
-    })
+    step()
   </script>
 </body>
 

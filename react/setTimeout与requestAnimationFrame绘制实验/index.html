@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <style>
+    #SomeElementYouWantToAnimate {
+      height: 100px;
+      width: 100px;
+      background: red;
+      position: absolute;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="SomeElementYouWantToAnimate"></div>
+  <script>
+    var start = 1
+    var element = document.getElementById("SomeElementYouWantToAnimate")
+
+    function sleep(timers) {
+      let now = Date.now()
+
+      let all = now + timers
+      while (now < all) {
+        now = Date.now()
+      }
+    }
+
+    // function step() {
+    //   requestIdleCallback((deadline) => {
+    //     console.log('requestIdleCallback' + start, deadline.timeRemaining());
+    //   })
+    //   setTimeout(() => {
+    //     if (start < 10) {
+    //       element.setAttribute('style', `left:${start * 10}px`)
+    //       // console.log('start', start, element);
+    //       start++
+    //       step()
+    //     }
+    //   }, 1)
+    // }
+
+    // function step() {
+
+    //   requestAnimationFrame(() => {
+    //     if (start < 10) {
+    //       sleep(1000)
+    //       element.setAttribute('style', `left:${start * 10}px`)
+    //       console.log('start', start,);
+    //       start++
+    //       step()
+    //     }
+    //   })
+    // }
+
+
+
+    step()
+
+
+  </script>
+</body>
+
+</html>
