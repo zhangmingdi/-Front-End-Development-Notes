@@ -107,3 +107,29 @@ commit 阶段是同步的，一旦开始就不能再中断。这个阶段遍历�
     - 初次渲染，则调用 componentDidMount，以及对应的useEffect 和useLayoutEffect 
     - 更新则调用 componentDidUpdate
     - 调用 this.setState 的 callback
+
+
+
+commit 阶段分成三个子阶段：
+
+- 第一阶段：commitBeforeMutationEffects。DOM 变更前
+  - 调用 类组件的 getSnapshotBeforeUpdate 生命周期方法
+  - 启动一个微任务以刷新 passive effects 异步队列。passive effects 异步队列存的是 useEffect 的清除函数以及监听函数
+- 第二阶段：commitMutationEffects。DOM 变更，操作真实的 DOM 节点。注意这个阶段是 `卸载` 相关的生命周期方法执行时机
+
+  - 操作真实的 DOM 节点：增删改查
+  - 同步调用函数组件 `useLayoutEffect` 的 `清除函数`
+  - 同步调用类组件的 `componentWillUnmount` 生命周期方法
+  - 将函数组件的 `useEffect` 的 `清除函数` 添加进异步队列，异步执行。
+  - **所有的函数组件的 useLayoutEffect 的清除函数都在这个阶段执行完成**
+
+- 第三阶段：commitLayoutEffects。DOM 变更后
+  - 调用函数组件的 `useLayoutEffect` 监听函数，同步执行
+  - 将函数组件的 `useEffect` 监听函数放入异步队列，异步执行
+  - 执行类组件的 `componentDidMount` 生命周期方法，同步执行
+  - 执行类组件的 `componentDidUpdate` 生命周期方法，同步执行
+  - 执行类组件 `this.setState(arg, callback)` 中的 `callback` 回调，同步执行
+
+每一个子阶段都是一个 while 循环，**从头开始**遍历副作用链表。
+
+### 注意初次渲染的时候，React 不需要追踪副作用，同时在 render 阶段就操作真实的 DOM！！！！！！。当 HostRoot 的 completeUnitOfWork 执行完成时，我们实际上已经得到一棵真实的 DOM 树，存储在内存中，还没挂载到容器 root 上
