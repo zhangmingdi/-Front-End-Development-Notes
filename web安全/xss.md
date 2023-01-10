@@ -19,4 +19,6 @@
    - 对 HTML 做充分转义。
   + 预防 DOM 型 XSS 攻击
    - 用 Vue/React 技术栈，谨慎使用v-html/dangerouslySetInnerHTML
+  + 其它
+   - 防止草种cookie,设置头http-only
 
