@@ -10,3 +10,9 @@
 
 ### micro-app好用的一款微前端：原理实现
 <https://github.com/micro-zoe/micro-app/issues/17>
+### micro-app的大体实现原理
+ + 基座应用通过fetch子应用的html文档取解析，css和script资源，从而进行一个隔离处理。
+ + css的隔离，通过fetch到css文本，然后再通过stylesheet对象给每个样式加一个选择器前缀。
+ + js隔离，通过fetch拿到js文本，使用with传入一个proxy的window对象，而改变js里面widnow指向传入的proxt对象而实现js隔离
+ + 元素隔离，document.querrySelector重写 使它选择时加入一个前缀 限制它只在自定义webcompoent里进行选择
+ + 主应用与子应用的通讯机制。
